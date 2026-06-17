@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../domain/Attendance/ClassSessionModel.dart';
 import '../../provider/Attendance/ClassCodeController.dart';
 import '../../provider/Attendance/AttendanceController.dart';
+import '../../provider/Attendance/LocationVerificationController.dart';
 import '../../theme/sams_theme.dart';
 
 /// SAMS-PACK-311 — Redesigned "Manage Attendance" UI based on the provided screenshot.
@@ -259,7 +260,20 @@ class _GenerateClassCodePageState extends State<GenerateClassCodePage> {
                     CupertinoSwitch(
                       value: isOpen,
                       activeTrackColor: SamsColors.success,
-                      onChanged: (_) => context.read<ClassCodeController>().toggleSessionStatus(session.classSessionId),
+                      onChanged: (_) async {
+                        final loc = context.read<LocationVerification>();
+                        final codeProv = context.read<ClassCodeController>();
+                        double? lat, lng;
+                        if (!isOpen) {
+                          await loc.checkGPSPermission();
+                          await loc.verifyCurrentLocation();
+                          lat = loc.currentLatitude;
+                          lng = loc.currentLongitude;
+                        }
+                        if (mounted) {
+                          codeProv.toggleSessionStatus(session.classSessionId, lat: lat, lng: lng);
+                        }
+                      },
                     ),
                   ],
                 ),

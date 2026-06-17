@@ -9,6 +9,8 @@ class ClassCodeModel {
   final DateTime generatedAt;
   final DateTime expiredAt;
   final bool isActive;
+  final double? latitude;
+  final double? longitude;
 
   const ClassCodeModel({
     required this.codeId,
@@ -18,6 +20,8 @@ class ClassCodeModel {
     required this.generatedAt,
     required this.expiredAt,
     required this.isActive,
+    this.latitude,
+    this.longitude,
   });
 
   bool isExpired() => DateTime.now().isAfter(expiredAt);
@@ -30,6 +34,8 @@ class ClassCodeModel {
         'generated_at': generatedAt.toIso8601String(),
         'expired_at': expiredAt.toIso8601String(),
         'is_active': isActive,
+        'latitude': latitude,
+        'longitude': longitude,
       };
 
   factory ClassCodeModel.fromMap(Map<String, dynamic> map) {
@@ -41,6 +47,8 @@ class ClassCodeModel {
       generatedAt: _parseDateTime(map['generated_at']),
       expiredAt: _parseDateTime(map['expired_at']),
       isActive: map['is_active'] as bool? ?? false,
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
     );
   }
 

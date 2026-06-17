@@ -100,6 +100,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           DropdownMenuItem(value: UserModel.roleStudent, child: Text('Student')),
                           DropdownMenuItem(value: UserModel.roleTreasury, child: Text('Treasury')),
                           DropdownMenuItem(value: UserModel.roleLecturer, child: Text('Lecturer')),
+                          DropdownMenuItem(value: UserModel.rolePusatAdab, child: Text('Pusat Adab')),
+                          DropdownMenuItem(value: UserModel.roleFacultyRegistrar, child: Text('Faculty Registrar')),
                         ],
                         onChanged: (val) {
                           if (val != null) setState(() => _selectedRole = val);

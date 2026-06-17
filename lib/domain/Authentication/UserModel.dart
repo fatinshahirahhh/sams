@@ -4,6 +4,8 @@ class UserModel {
   static const String roleStudent = 'Student';
   static const String roleTreasury = 'Treasury';
   static const String roleLecturer = 'Lecturer';
+  static const String rolePusatAdab = 'Pusat Adab';
+  static const String roleFacultyRegistrar = 'Faculty Registrar';
 
   // --- User attributes ---
   final String userId; // e.g. Student ID (CB23026), Staff ID

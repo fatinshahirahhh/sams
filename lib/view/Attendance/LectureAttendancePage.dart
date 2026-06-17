@@ -185,6 +185,7 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                           activeColor: SamsColors.success,
                           onChanged: (_) async {
                             final loc = context.read<LocationVerification>();
+                            final codeProv = context.read<ClassCodeController>();
                             double? lat, lng;
                             if (!isOpen) { // If opening
                               await loc.checkGPSPermission();
@@ -193,7 +194,7 @@ class _LectureAttendancePageState extends State<LectureAttendancePage> {
                               lng = loc.currentLongitude;
                             }
                             if (mounted) {
-                              context.read<ClassCodeController>().toggleSessionStatus(session.classSessionId, lat: lat, lng: lng);
+                              codeProv.toggleSessionStatus(session.classSessionId, lat: lat, lng: lng);
                             }
                           },
                         ),

@@ -85,15 +85,24 @@ class AttendanceController extends ChangeNotifier {
           return {'status': 'gps_denied'};
         }
 
-        // 1. Get current position
-        await _locationVerification.verifyCurrentLocation();
+        // 1. Get current position and verify.
+        // We pass target location to LocationVerification so it can update its status message.
+        await _locationVerification.verifyCurrentLocation(
+          targetLat: sessionLat,
+          targetLon: sessionLng,
+        );
+
+        if (_locationVerification.currentLatitude == null) {
+          _lastResult = 'gps_denied';
+          return {'status': 'gps_denied'};
+        }
         
         // 2. If session has a specific location, match against it. 
         // Otherwise fallback to campus default.
         if (sessionLat != null && sessionLng != null) {
           final dist = haversineDistanceMeters(
-            lat1: _locationVerification.currentLatitude ?? 0,
-            lon1: _locationVerification.currentLongitude ?? 0,
+            lat1: _locationVerification.currentLatitude!,
+            lon1: _locationVerification.currentLongitude!,
             lat2: sessionLat,
             lon2: sessionLng,
           );

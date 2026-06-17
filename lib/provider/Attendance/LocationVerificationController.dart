@@ -60,27 +60,33 @@ class LocationVerification extends ChangeNotifier {
       _hasPermission = true;
       _statusMessage = 'GPS permission granted';
       return true;
+    } catch (e) {
+      _statusMessage = 'Permission check failed: $e';
+      return false;
     } finally {
       _isChecking = false;
       notifyListeners();
     }
   }
 
-  Future<LocationModel?> _loadActiveCampusLocation() async {
+  Future<List<LocationModel>> _loadAllActiveCampusLocations() async {
     final snapshot = await _db
         .collection(FirestoreCollections.locations)
         .where('is_active', isEqualTo: true)
-        .limit(1)
         .get();
 
-    if (snapshot.docs.isEmpty) return null;
-    return LocationModel.fromMap(snapshot.docs.first.data());
+    return snapshot.docs.map((doc) => LocationModel.fromMap(doc.data())).toList();
   }
 
-  Future<bool> verifyCurrentLocation() async {
+  Future<bool> verifyCurrentLocation({
+    double? targetLat,
+    double? targetLon,
+    double? targetRadius,
+  }) async {
     if (_isChecking) return false;
     _isChecking = true;
     _isOnCampus = false;
+    _lastDistanceMeters = null;
     notifyListeners();
 
     try {
@@ -88,13 +94,6 @@ class LocationVerification extends ChangeNotifier {
         final granted = await checkGPSPermission();
         if (!granted) return false;
       }
-
-      final campus = await _loadActiveCampusLocation();
-      if (campus == null) {
-        _statusMessage = 'Service Unavailable: No active campus configuration found.';
-        return false;
-      }
-      _activeLocation = campus;
 
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
@@ -106,19 +105,64 @@ class LocationVerification extends ChangeNotifier {
       _currentLatitude = position.latitude;
       _currentLongitude = position.longitude;
 
-      _lastDistanceMeters = haversineDistanceMeters(
-        lat1: position.latitude,
-        lon1: position.longitude,
-        lat2: campus.centerLatitude,
-        lon2: campus.centerLongitude,
-      );
+      // 1. If a specific target location is provided (e.g. Lecturer's position)
+      if (targetLat != null && targetLon != null) {
+        final dist = haversineDistanceMeters(
+          lat1: position.latitude,
+          lon1: position.longitude,
+          lat2: targetLat,
+          lon2: targetLon,
+        );
+        
+        final radius = targetRadius ?? 100.0;
+        if (dist <= radius) {
+          _isOnCampus = true;
+          _lastDistanceMeters = dist;
+          _statusMessage = 'Location Verified: Near Lecturer';
+          return true;
+        }
+      }
 
-      _isOnCampus = _lastDistanceMeters! <= campus.allowedMeter;
-      _statusMessage = _isOnCampus
-          ? 'On Campus (Verified) — ${campus.campusName}'
-          : 'Outside campus — ${_lastDistanceMeters!.toStringAsFixed(0)}m from ${campus.campusName}';
+      // 2. Fallback to check all active Campus Geofences
+      final campuses = await _loadAllActiveCampusLocations();
+      if (campuses.isEmpty) {
+        _statusMessage = 'Service Unavailable: No active campus configuration found.';
+        return false;
+      }
 
-      return _isOnCampus;
+      double minDistance = double.infinity;
+      LocationModel? closestCampus;
+
+      for (final campus in campuses) {
+        final dist = haversineDistanceMeters(
+          lat1: position.latitude,
+          lon1: position.longitude,
+          lat2: campus.centerLatitude,
+          lon2: campus.centerLongitude,
+        );
+
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestCampus = campus;
+        }
+
+        if (dist <= campus.allowedMeter) {
+          _isOnCampus = true;
+          _activeLocation = campus;
+          _lastDistanceMeters = dist;
+          _statusMessage = 'On Campus (Verified) — ${campus.campusName}';
+          return true;
+        }
+      }
+
+      // If not in any campus
+      _activeLocation = closestCampus;
+      _lastDistanceMeters = minDistance;
+      _statusMessage = closestCampus != null
+          ? 'Outside campus — ${minDistance.toStringAsFixed(0)}m from ${closestCampus.campusName}'
+          : 'Outside defined campus area.';
+
+      return false;
     } catch (e) {
       _statusMessage = 'Location verification failed: $e';
       return false;
