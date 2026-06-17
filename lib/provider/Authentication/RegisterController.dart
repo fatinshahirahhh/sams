@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sams/domain/Authentication/UserModel.dart';
 import 'package:sams/provider/Authentication/AuthController.dart';
+import 'package:sams/utils/constants.dart';
 
 class RegisterController extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -23,10 +24,23 @@ class RegisterController extends ChangeNotifier {
     try {
       final email = authController.idToEmail(userId);
 
-      final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential? credential;
+      try {
+        credential = await _auth.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use') {
+          // If user exists in Auth but maybe missing Firestore profile
+          credential = await _auth.signInWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+        } else {
+          rethrow;
+        }
+      }
 
       if (credential.user != null) {
         final newUser = UserModel(
@@ -35,7 +49,7 @@ class RegisterController extends ChangeNotifier {
           role: role,
         );
 
-        await _firestore.collection('users').doc(credential.user!.uid).set(newUser.toMap());
+        await _firestore.collection(FirestoreCollections.users).doc(credential.user!.uid).set(newUser.toMap());
         
         await authController.fetchUserDetails(credential.user!.uid);
         
@@ -43,8 +57,8 @@ class RegisterController extends ChangeNotifier {
         return true;
       }
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        authController.errorMessage = "This User ID is already registered.";
+      if (e.code == 'wrong-password') {
+        authController.errorMessage = "This User ID is registered with a different password.";
       } else {
         authController.errorMessage = e.message;
       }

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sams/domain/Authentication/UserModel.dart';
+import 'package:sams/utils/constants.dart';
 
 class AuthController extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -46,14 +47,14 @@ class AuthController extends ChangeNotifier {
 
   Future<void> fetchUserDetails(String uid) async {
     try {
-      final doc = await _firestore.collection('users').doc(uid).get();
+      final doc = await _firestore.collection(FirestoreCollections.users).doc(uid).get();
       if (doc.exists && doc.data() != null) {
         _currentUser = UserModel.fromFirestore(doc.data()!);
         _errorMessage = null;
       } else {
         _currentUser = null;
         if (_auth.currentUser != null) {
-          _errorMessage = "User profile not found in Firestore. Please register again.";
+          _errorMessage = "Profile missing for UID: $uid. Please register via the app to fix this.";
         }
       }
     } catch (e) {

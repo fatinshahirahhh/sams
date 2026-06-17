@@ -1,4 +1,5 @@
 class FirestoreCollections {
+  static const String users = 'users';
   static const String students = 'students';
   static const String fees = 'fees';
   static const String payments = 'payments';

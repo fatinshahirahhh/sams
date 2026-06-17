@@ -42,6 +42,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final isStudent = role == UserModel.roleStudent;
     final isTreasury = role == UserModel.roleTreasury;
     final isLecturer = role == UserModel.roleLecturer;
+    final isPusatAdab = role == UserModel.rolePusatAdab;
 
     return Scaffold(
       appBar: AppBar(
@@ -193,8 +194,19 @@ class _DashboardPageState extends State<DashboardPage> {
                   ],
                 ],
 
+                // Pusat Adab Actions
+                if (isPusatAdab) ...[
+                  _ActionCard(
+                    title: 'Student Moral Records',
+                    subtitle: 'Manage and review student conduct.',
+                    icon: Icons.gavel,
+                    backgroundColor: const Color(0xFF0C855E),
+                    onTap: () {},
+                  ),
+                ],
+
                 // Fallback for empty actions
-                if (!isStudent && !isTreasury && !isLecturer)
+                if (!isStudent && !isTreasury && !isLecturer && !isPusatAdab)
                    Center(
                      child: Padding(
                        padding: const EdgeInsets.only(top: 40),
